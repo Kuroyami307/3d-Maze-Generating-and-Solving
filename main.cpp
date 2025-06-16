@@ -11,29 +11,35 @@
 #include "game.h"
 #include "shader.h"
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten/emscripten.h>
+#include <emscripten/html5.h> 
+#endif
+
 #define GRIDSIZE 256
 #define ROW 16
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow *window);
+void glfwErrorCallback(int error, const char* description);
 
-// settings
 unsigned int SCR_WIDTH = 700;
 unsigned int SCR_HEIGHT = 700;
 
-class cell{
+// Forward declare classes
+class cell;
+class grid;
 
-    public:
+class cell {
+public:
     bool hasWall[4] = {1, 1, 1, 1}; // 0-top 1-bottom 2-left 3-right
     int value = 15; // just for printing purpose before adding graphics stuffs
     bool visited = false;
-    //gui part
     obstacle walls[4];
 
     void initializeWalls(shader *mainShader)
     {
-        for(int i = 0; i < 4; i++)
-        {
+        for (int i = 0; i < 4; i++) {
             walls[i].setShader(mainShader);
         }
         walls[0].block2D(45, 5);
@@ -51,45 +57,39 @@ class cell{
 
     void draw()
     {
-        for(int i = 0; i < 4; i++)
-        {
-            if(hasWall[i]) walls[i].draw();
+        for (int i = 0; i < 4; i++) {
+            if (hasWall[i]) walls[i].draw();
         }
     }
 
     void setPosition(glm::vec3 position)
     {
-        for(int i = 0; i < 4; i++)
-        {
+        for (int i = 0; i < 4; i++) {
             walls[i].setPosition(position);
         }
     }
 };
 
-class grid{
-    private:
+class grid {
+private:
     cell blocks[GRIDSIZE];
     std::stack<int> visitedCells;
 
-    public:
-
+public:
     grid(shader *mainShader)
     {
         int i, j;
-        for(int k = 0; k < GRIDSIZE; k++)
-        {
+        for (int k = 0; k < GRIDSIZE; k++) {
             blocks[k].initializeWalls(mainShader);
 
-            i = k / ROW; //row
-            j = k % ROW; //column
+            i = k / ROW; // row
+            j = k % ROW; // column
 
-            // blocks[k].setPosition(glm::vec3((float)i * 40, (float)j * 40, 0.0f));
             blocks[k].setPosition(glm::vec3((float)j * 40 - (ROW/2 * 40 - 20), -(float)i * 40 + (ROW/2 * 40 - 20), 0.0f));
-
-        } 
+        }
     }
 
-    void removeWall(int block_num, int index) //index: 0-top 1-bottom 2-left 3-right
+    void removeWall(int block_num, int index) // index: 0-top 1-bottom 2-left 3-right
     {
         int i = block_num / ROW; // row
         int j = block_num % ROW; // column
@@ -113,9 +113,6 @@ class grid{
             case 3:
                 if(j < ROW - 1) blocks[i * ROW + j + 1].hasWall[2] = false;
                 break;
-
-            default:
-                break;
         }
     }
 
@@ -124,18 +121,11 @@ class grid{
         int value;
         for(int i = 0; i < GRIDSIZE; i++)
         {
-            value = 0; //index: 0-top 1-bottom 2-left 3-right
-            if(blocks[i].hasWall[0])
-                value += 1;
-
-            if(blocks[i].hasWall[1])
-                value += 2;
-
-            if(blocks[i].hasWall[2])
-                value += 4;
-
-            if(blocks[i].hasWall[3])
-                value += 8;
+            value = 0;
+            if(blocks[i].hasWall[0]) value += 1;
+            if(blocks[i].hasWall[1]) value += 2;
+            if(blocks[i].hasWall[2]) value += 4;
+            if(blocks[i].hasWall[3]) value += 8;
 
             blocks[i].value = value;
         }
@@ -146,7 +136,6 @@ class grid{
         for(int i = 1; i <= GRIDSIZE; i++)
         {
             std::cout << blocks[i-1].value << "  ";
-
             if(i % 8 == 0) std::cout << std::endl;
         }
     }
@@ -210,9 +199,8 @@ class grid{
 
                 if(blocks[next_block].visited == false) break;
             }
-            
+
             removeWall(block_num, direction);
-            // draw();
             recursiveBacktrack(next_block);
         }
         else
@@ -224,7 +212,6 @@ class grid{
 
                 if(hasUnvisitedNeighbours(next_block))
                 {
-                    // draw();
                     recursiveBacktrack(next_block);
                     return;
                 }
@@ -234,126 +221,124 @@ class grid{
 
     void generateMaze()
     {
-        // int start_block = rand() % GRIDSIZE;
         int start_block = 20;
         recursiveBacktrack(start_block);
     }
 };
 
+// Globals needed for emscripten main loop
+GLFWwindow* window = nullptr;
+grid* gPtr = nullptr;
+
+void main_loop()
+{
+    if (!window)
+        return;
+
+    processInput(window);
+
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    if (gPtr)
+        gPtr->draw();
+
+    glfwSwapBuffers(window);
+    glfwPollEvents();
+}
+
 int main()
 {
-    // glfw: initialize and configure
-    // ------------------------------
+    glfwSetErrorCallback(glfwErrorCallback);
     glfwInit();
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
+    #ifdef __EMSCRIPTEN__
+        glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_ES_API);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+    #else
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    #endif
+    
 
 #ifdef __APPLE__
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
 
-    // glfw window creation
-    // --------------------
-    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "LearnOpenGL", NULL, NULL);
-    if (window == NULL)
+    window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "LearnOpenGL", NULL, NULL);
+    if (!window)
     {
-        std::cout << "Failed to create GLFW window" << std::endl;
+        std::cout << "Failed to create GLFW window\n";
         glfwTerminate();
         return -1;
     }
     glfwMakeContextCurrent(window);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
-    // glad: load all OpenGL function pointers
-    // ---------------------------------------
-    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
+    #ifdef __EMSCRIPTEN__
+    if (!gladLoadGLLoader((GLADloadproc)emscripten_webgl_get_proc_address))
     {
-        std::cout << "Failed to initialize GLAD" << std::endl;
+        std::cout << "Failed to initialize GLAD\n";
         return -1;
     }
+    #else
+    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
+    {
+        std::cout << "Failed to initialize GLAD\n";
+        return -1;
+    }
+    #endif
 
-    // configure global opengl state
-    // -----------------------------
-    // glEnable(GL_DEPTH_TEST);
+    shader mainShader;
 
-    //make shaderObject
-    shader mainShader("vShader.txt", "fShader.txt");
+    
+    #ifdef __EMSCRIPTEN__
+        mainShader.loadShaders("/vShader.txt", "/fShader.txt");
+    #else
+        mainShader.loadShaders("vs2.txt", "fs2.txt");
+    #endif
 
-    //define model objects;
+    gPtr = new grid(&mainShader);
+    gPtr->generateMaze();
 
-    grid g(&mainShader);
-    g.generateMaze();
-    // sphere.calculateNormals();
-
-    glm::vec3 cameraPos(0.0f, 0.0f, 50.0f), targetPos(0.0f, 0.0f, 0.0f), cameraUp(0.0f, 1.0f, 0.0f);
-    // model  = glm::translate(model, glm::vec3(0.0f, -50.0f, 0.0f));
+    glm::vec3 cameraPos(0.0f, 0.0f, 50.0f), targetPos(0.0f), cameraUp(0.0f, 1.0f, 0.0f);
 
     view  = glm::lookAt(cameraPos, targetPos, cameraUp);
-
     float aspectRatio = (float)SCR_WIDTH / SCR_HEIGHT;
-    // float val = 1.2 * base.getAverageVertices();
-    // float val = 600;
     projection = glm::ortho(-400.0f, 400.0f, -400.0f, 400.0f, -100.0f, 100.0f);
 
-    // float groundY = glm::vec4(model * glm::vec4(0.0f, ground.getBoundary()[3], 0.0f, 1.0f)).y;
+    glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 
-    // uncomment this call to draw in wireframe polygons.
-    // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-
-    // float lastFrame = 0.0f;
-    // float deltaTime = 0.0f;
-
-    // render loop
-    // -----------
+#ifdef __EMSCRIPTEN__
+    emscripten_set_main_loop(main_loop, 0, 1);
+#else
     while (!glfwWindowShouldClose(window))
     {
-        // float currentFrame = glfwGetTime();
-        // deltaTime = currentFrame - lastFrame;
-        // lastFrame = currentFrame;
-        // input
-        // -----
-        processInput(window);
-
-
-        // render
-        // ------
-        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
-
-        g.draw();
-        // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
-        // -------------------------------------------------------------------------------
-        glfwSwapBuffers(window);
-        glfwPollEvents();
+        main_loop();
     }
+#endif
 
-    // optional: de-allocate all resources once they've outlived their purpose:
-    // ------------------------------------------------------------------------
+    delete gPtr;
     glDeleteProgram(mainShader.progID);
-
-    // glfw: terminate, clearing all previously allocated GLFW resources.
-    // ------------------------------------------------------------------
     glfwTerminate();
-
     return 0;
 }
 
-// process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
-// ---------------------------------------------------------------------------------------------------------
 void processInput(GLFWwindow *window)
 {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
 }
 
-// glfw: whenever the window size changed (by OS or user resize) this callback function executes
-// ---------------------------------------------------------------------------------------------
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
-    // make sure the viewport matches the new window dimensions; note that width and 
-    // height will be significantly larger than specified on retina displays.
     glViewport(0, 0, width, height);
-    SCR_HEIGHT = height;
     SCR_WIDTH = width;
+    SCR_HEIGHT = height;
+}
+
+void glfwErrorCallback(int error, const char* description)
+{
+    std::cerr << "GLFW Error (" << error << "): " << description << std::endl;
 }

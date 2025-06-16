@@ -19,6 +19,7 @@ const glm::vec3 GRAVITY(0.0f, -70.0f, 0.0f);
 glm::mat4 view          = glm::mat4(1.0f);
 glm::mat4 projection    = glm::mat4(1.0f);
 
+//struct that stores all the stuffs needed to implement physics
 struct physicsComponent{
     float mass = 1.0;
     glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f); //object center
@@ -42,12 +43,15 @@ struct physicsComponent{
     float radius = 0.0f;
 };
 
+/* struct used in collision system to know the if collision has occured,
+the overlap between the colliding objects and the collision normal */
 struct collided{
     bool hasCollided = false;
     float overlap = 0.0f;
     glm::vec3 normal = glm::vec3(0.0f, 0.0f, 0.0f);
 };
 
+// camera class which stores and updates the camera system
 class camera{
     private:
     glm::vec3 position;
@@ -108,6 +112,7 @@ class camera{
     }
 };
 
+//model class which stores the vertices, faces, normal, color of a model and renders them
 class model{
     private:
     std::vector<float>vertices;
@@ -125,7 +130,35 @@ class model{
         color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
     }
 
-    void loadModel(const std::string &name)
+    void attachBuffers()
+    {
+        glGenVertexArrays(1, &VAO);
+        glGenBuffers(1, &VBO_position);
+        glGenBuffers(1, &EBO);
+        // bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
+        glBindVertexArray(VAO);
+
+        glBindBuffer(GL_ARRAY_BUFFER, VBO_position);
+        glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
+
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, faces.size() * sizeof(int), faces.data(), GL_STATIC_DRAW);
+
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+        glEnableVertexAttribArray(0);
+
+        // note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
+        glBindBuffer(GL_ARRAY_BUFFER, 0); 
+
+        // remember: do NOT unbind the EBO while a VAO is active as the bound element buffer object IS stored in the VAO; keep the EBO bound.
+        //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+        // You can unbind the VAO afterwards so other VAO calls won't accidentally modify this VAO, but this rarely happens. Modifying other
+        // VAOs requires a call to glBindVertexArray anyways so we generally don't unbind VAOs (nor VBOs) when it's not directly necessary.
+        glBindVertexArray(0);
+    }
+
+    void loadModel(const std::string &name) //loading any .obj files
     {
         std::string line;
         file.open(name.c_str());
@@ -158,57 +191,7 @@ class model{
 
         attachBuffers(); 
     }
-
-    void setValues(std::vector<float>v, std::vector<int> f, shader *modelShader)
-    {
-        this->modelShader = modelShader;
-
-        for(int i = 0, s = v.size(); i < s; i++)
-        {
-            vertices.push_back(v[i]);
-        }
-
-        for(int i = 0, s = f.size(); i < s; i++)
-        {
-            faces.push_back(f[i]);
-        }
-
-        attachBuffers();
-    }
     
-    void attachBuffers()
-    {
-        glGenVertexArrays(1, &VAO);
-        glGenBuffers(1, &VBO_position);
-        glGenBuffers(1, &EBO);
-        // bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
-        glBindVertexArray(VAO);
-
-        glBindBuffer(GL_ARRAY_BUFFER, VBO_position);
-        glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
-
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, faces.size() * sizeof(int), faces.data(), GL_STATIC_DRAW);
-
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-        glEnableVertexAttribArray(0);
-
-        // note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
-        glBindBuffer(GL_ARRAY_BUFFER, 0); 
-
-        // remember: do NOT unbind the EBO while a VAO is active as the bound element buffer object IS stored in the VAO; keep the EBO bound.
-        //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-
-        // You can unbind the VAO afterwards so other VAO calls won't accidentally modify this VAO, but this rarely happens. Modifying other
-        // VAOs requires a call to glBindVertexArray anyways so we generally don't unbind VAOs (nor VBOs) when it's not directly necessary.
-        glBindVertexArray(0);
-    }
-
-    void setShader(shader *modelShader)
-    {
-        this->modelShader = modelShader;
-    }
-
     void block2D(float length, float breadth)
     {
         vertices.clear();
@@ -296,52 +279,6 @@ class model{
         std::cout << "circle2D called, vertices: " << vertices.size() << "\n";
     }
 
-    void setColor(glm::vec4 color)
-    {
-        this->color = color;
-    }
-
-    float getAverageVertices()
-    {
-        float average = 0;
-        int vSize = vertices.size() / 3;
-
-        for(int i = 0; i < vSize; i++)
-        {
-            average += abs(vertices[3 * i]);
-        }
-
-        return average/vSize;
-    }
-
-    void draw(bool isCircle)
-    {
-        glBindVertexArray(VAO); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
-        //glDrawArrays(GL_TRIANGLES, 0, 6);
-        if(isCircle)
-            glDrawElements(GL_TRIANGLE_FAN, faces.size(), GL_UNSIGNED_INT, 0);
-        else
-            glDrawElements(GL_TRIANGLES, faces.size(), GL_UNSIGNED_INT, 0);
-        // glBindVertexArray(0); // no need to unbind it every time 
-    }
-
-    void useShader(glm::mat4 model)
-    {
-        modelShader->use();
-
-        modelShader->setMat4("model", model);
-        modelShader->setMat4("view", view);
-        modelShader->setMat4("projection", projection);
-        modelShader->setVec4("color", color);
-    }
-
-    ~model()
-    {
-        glDeleteVertexArrays(1, &VAO);
-        glDeleteBuffers(1, &VBO_position);
-        glDeleteBuffers(1, &EBO);
-    }
-
     void calculateNormals()
     {
         vertexNormals.resize(vertices.size(), 0.0f);
@@ -397,6 +334,31 @@ class model{
         glBindBuffer(GL_ARRAY_BUFFER, 0); 
     }
 
+    //set functions to set different values in the class
+    void setShader(shader *modelShader)
+    {
+        this->modelShader = modelShader;
+    }
+
+    void setColor(glm::vec4 color)
+    {
+        this->color = color;
+    }
+
+    //get function to get different values from the class
+    float getAverageVertices()
+    {
+        float average = 0;
+        int vSize = vertices.size() / 3;
+
+        for(int i = 0; i < vSize; i++)
+        {
+            average += abs(vertices[3 * i]);
+        }
+
+        return average/vSize;
+    }
+
     std::vector<float> getBoundary()
     {
         int size = vertices.size()/3;
@@ -434,6 +396,34 @@ class model{
         return {minX, maxX, minY, maxY, minZ, maxZ};
     }
 
+    //functions for rendering
+    void draw(bool isCircle)
+    {
+        glBindVertexArray(VAO); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
+        //glDrawArrays(GL_TRIANGLES, 0, 6);
+        if(isCircle)
+            glDrawElements(GL_TRIANGLE_FAN, faces.size(), GL_UNSIGNED_INT, 0);
+        else
+            glDrawElements(GL_TRIANGLES, faces.size(), GL_UNSIGNED_INT, 0);
+        // glBindVertexArray(0); // no need to unbind it every time 
+    }
+
+    void useShader(glm::mat4 model)
+    {
+        modelShader->use();
+
+        modelShader->setMat4("model", model);
+        modelShader->setMat4("view", view);
+        modelShader->setMat4("projection", projection);
+        modelShader->setVec4("color", color);
+    }
+
+    ~model()
+    {
+        glDeleteVertexArrays(1, &VAO);
+        glDeleteBuffers(1, &VBO_position);
+        glDeleteBuffers(1, &EBO);
+    }
 };
 
 class gameObject{
@@ -460,14 +450,6 @@ class gameObject{
     {
         object.loadModel(filepath.c_str());
         // object.calculateNormals();
-        initialize();
-    }
-
-    gameObject(std::vector<float> v, std::vector<int>f, shader* modelShader, glm::vec4 color)
-    {
-        object.setValues(v,f, modelShader);
-        object.setColor(color);
-
         initialize();
     }
 
@@ -499,46 +481,6 @@ class gameObject{
         physics.boundary = {-radius, radius, -radius, radius, -1, -1};
     }
 
-    void setRestitution(float e)
-    {
-        physics.coeffOfRestitution = e;
-    }
-
-    void setStatic(bool isStatic)
-    {
-        physics.isStatic = isStatic;
-    }
-
-    void setMass(float mass)
-    {
-        physics.mass = mass;
-    }
-    
-    void setGravityStatus(bool status)
-    {
-        physics.hasGravity = status;
-    }
-
-    bool getGravityStatus()
-    {
-        return physics.hasGravity;
-    }
-
-    void setCollisionStatus(bool status)
-    {
-        physics.hasCollision = status;
-    }
-
-    bool getCollisionStatus()
-    {
-        return physics.hasCollision;
-    }
-
-    std::vector<float> getBoundary()
-    {
-        return physics.boundary;
-    }
-
     float applyTransformToFloat(float coordinate, char axis='x')
     {
         if(axis == 'x' || axis == 'X')
@@ -551,31 +493,6 @@ class gameObject{
             return glm::vec4(model * objTranslation * glm::vec4(0.0f, 0.0f, coordinate, 0.0f)).z;
 
         return 0.0f;
-    }
-
-    glm::vec3 getVelocity()
-    {
-        return physics.velocity;
-    }
-
-    glm::vec3 getPosition()
-    {
-        return physics.position;
-    }
-
-    void setVelocity(glm::vec3 velocity)
-    {
-        physics.velocity = velocity;
-    }
-
-    void setAcceleration(glm::vec3 acceleration)
-    {
-        physics.acceleration += acceleration;
-    }
-
-    float getMass()
-    {
-        return physics.mass;
     }
 
     collided checkAABBCollision(gameObject *objPtr)
@@ -884,26 +801,45 @@ class gameObject{
             physics.hasGravity = true; 
     }
 
-    bool getOnGroundStatus()
+    //set functions to set vlaues in the class
+    void setShader(shader* modelShader)
     {
-        return physics.onGround;
+        object.setShader(modelShader);
     }
 
-    bool setOnGroundStatus(bool status)
+    void setMass(float mass)
     {
-        return physics.onGround = status;
+        physics.mass = mass;
+    }
+    
+    void setPosition(glm::vec3 position)
+    {
+        physics.position = position;
     }
 
-    glm::mat4 getTransformationMatrix()
+    void setVelocity(glm::vec3 velocity)
     {
-        return objTranslation;
+        physics.velocity = velocity;
     }
 
-    void draw()
+    void setAcceleration(glm::vec3 acceleration)
     {
-        objTranslation = glm::translate(glm::mat4(1.0f), physics.position);
-        object.useShader(model * objTranslation);
-        object.draw(isCircle);
+        physics.acceleration += acceleration;
+    }
+
+    void setRestitution(float e)
+    {
+        physics.coeffOfRestitution = e;
+    }
+
+    void setStatic(bool isStatic)
+    {
+        physics.isStatic = isStatic;
+    }
+
+    void setGravityStatus(bool status)
+    {
+        physics.hasGravity = status;
     }
 
     void setModelMatrix(glm::mat4 matrix)
@@ -911,15 +847,69 @@ class gameObject{
         model = matrix;
     }
 
-    void setPosition(glm::vec3 position)
+    bool setOnGroundStatus(bool status)
     {
-        physics.position = position;
+        return physics.onGround = status;
+    }
+
+    //get function to get diff values from the class
+    bool getGravityStatus()
+    {
+        return physics.hasGravity;
+    }
+
+    void setCollisionStatus(bool status)
+    {
+        physics.hasCollision = status;
+    }
+
+    bool getCollisionStatus()
+    {
+        return physics.hasCollision;
+    }
+
+    std::vector<float> getBoundary()
+    {
+        return physics.boundary;
+    }
+
+    float getMass()
+    {
+        return physics.mass;
+    }
+
+    glm::vec3 getPosition()
+    {
+        return physics.position;
+    }
+
+    glm::vec3 getVelocity()
+    {
+        return physics.velocity;
+    }
+ 
+    bool getOnGroundStatus()
+    {
+        return physics.onGround;
+    }
+
+    glm::mat4 getTransformationMatrix()
+    {
+        return objTranslation;
     }
 
     float getAverageVertices()
     {
         return object.getAverageVertices();
     }
+    //rendering funtions
+    void draw()
+    {
+        objTranslation = glm::translate(glm::mat4(1.0f), physics.position);
+        object.useShader(model * objTranslation);
+        object.draw(isCircle);
+    }
+
 };
 
 class player : public gameObject {
@@ -928,7 +918,6 @@ class player : public gameObject {
     //light?
 
     public:
-    // player(){}
     player(shader* modelShader)
     {
         object.setShader(modelShader);
@@ -998,14 +987,42 @@ class player : public gameObject {
 
     }
 
-    //camera stuff
-    void setCamera(glm::vec3 camPos, glm::vec3 targetPos, glm::vec3 up){
-        playerCam.setCamera(camPos, targetPos, up);
+    void jump()
+    {
+        if(physics.onGround == true)
+        {            
+            physics.velocity.y = 85.0f;
+            // physics.acceleration.y = GRAVITY.y - 60.0f;
+            physics.onGround = false;
+        }
+        // else physics.acceleration.y = GRAVITY.y;
     }
 
+    //camera stuff
+    void updateCamera()
+    {
+
+        glm::vec4 temp(physics.position, 1.0f);
+        temp = temp * model;
+
+        // playerCam.setCamera(glm::vec3(temp.x, temp.y, 50.0f), glm::vec3(temp.x, temp.y, temp.z), glm::vec3(0.0f, 1.0f, 0.0f));
+
+
+        playerCam.setCamera(glm::vec3(temp.x, 0.0f, 50.0f), glm::vec3(temp.x, 0.0f, temp.z), glm::vec3(0.0f, 1.0f, 0.0f));
+
+        // playerCam.updateCameraPosition(model * objTranslation);
+        // playerCam.updateTargetPosition(model * objTranslation);
+    }
+    
+    //get functions
     glm::mat4 getViewMatrix()
     {
         return playerCam.viewMatrix();
+    }
+
+    //set functions
+    void setCamera(glm::vec3 camPos, glm::vec3 targetPos, glm::vec3 up){
+        playerCam.setCamera(camPos, targetPos, up);
     }
 
     void updateCameraPosition(glm::mat4 matrix)
@@ -1028,42 +1045,6 @@ class player : public gameObject {
         playerCam.updateTargetPosition(matrix);
     }
 
-    void updateCamera()
-    {
-
-        glm::vec4 temp(physics.position, 1.0f);
-        temp = temp * model;
-
-        // playerCam.setCamera(glm::vec3(temp.x, temp.y, 50.0f), glm::vec3(temp.x, temp.y, temp.z), glm::vec3(0.0f, 1.0f, 0.0f));
-
-
-        playerCam.setCamera(glm::vec3(temp.x, 0.0f, 50.0f), glm::vec3(temp.x, 0.0f, temp.z), glm::vec3(0.0f, 1.0f, 0.0f));
-
-        // playerCam.updateCameraPosition(model * objTranslation);
-        // playerCam.updateTargetPosition(model * objTranslation);
-    }
-    void jump()
-    {
-        if(physics.onGround == true)
-        {            
-            physics.velocity.y = 85.0f;
-            // physics.acceleration.y = GRAVITY.y - 60.0f;
-            physics.onGround = false;
-        }
-        // else physics.acceleration.y = GRAVITY.y;
-    }
-
-    // void collision(gameObject *objPtr)
-    // {
-    //     glm::vec3 normal = this->checkCollision(objPtr);
-
-    //     if(normal == glm::vec3(0.0f, 0.0f, 0.0f)) return;
-
-    //     this->physics.onGround = true;
-    //     std::cout << "On Ground\n";
-    //     // this->setVelocity(glm::vec3(0.0f, 0.0f, 0.0f));
-    //     // objPtr->setVelocity(glm::vec3(0.0f, 0.0f, 0.0f));
-    // }
 };
 
 class obstacle : public gameObject {
@@ -1076,11 +1057,6 @@ class obstacle : public gameObject {
 
         physics.hasCollision = true;
         physics.isStatic = true;
-    }
-
-    void setShader(shader* modelShader)
-    {
-        object.setShader(modelShader);
     }
 
     obstacle(shader* modelShader, float length, float breadth, float width = 0)

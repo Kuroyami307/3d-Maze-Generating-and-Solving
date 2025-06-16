@@ -16,7 +16,7 @@ class shader
     public:
     unsigned int progID; //program ID of the shader program
 
-    shader(const char* vertexPath, const char* fragmentPath)
+    void loadShaders(const char* vertexPath, const char* fragmentPath)
     {
         // 1. Retrieve the vertex/fragment source code from filePath
         std::string vertexCode;
