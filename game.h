@@ -229,6 +229,47 @@ class model{
         attachBuffers();
     }
 
+    void block3D(float length, float breadth, float width)
+    {
+        vertices.clear();
+        faces.clear();
+
+        vertices = {
+            length/2, breadth/2, 0,
+            -length/2, breadth/2, 0,
+            length/2, -breadth/2, 0,
+            -length/2, -breadth/2, 0,
+
+            length/2, breadth/2, width,
+            -length/2, breadth/2, width,
+            length/2, -breadth/2, width,
+            -length/2, -breadth/2, width
+        };
+
+        faces = {
+            // Back face
+            0, 1, 2,
+            2, 3, 0,
+            // Front face
+            4, 5, 6,
+            6, 7, 4,
+            // Left face
+            4, 0, 3,
+            3, 7, 4,
+            // Right face
+            1, 5, 6,
+            6, 2, 1,
+            // Bottom face
+            4, 5, 1,
+            1, 0, 4,
+            // Top face
+            3, 2, 6,
+            6, 7, 3
+        };
+
+        attachBuffers();
+    }
+
     void circle2D(float radius)
     {
         vertices.clear();
@@ -443,6 +484,13 @@ class gameObject{
         physics.boundary = object.getBoundary();
     }
 
+    void block3D(float length, float breadth, float width)
+    {
+        isCircle = false;
+        object.block3D(length, breadth, width);
+        physics.boundary = object.getBoundary();
+    }
+    
     void circle2D(float radius)
     {
         isCircle = true;
@@ -853,6 +901,7 @@ class gameObject{
 
     void draw()
     {
+        objTranslation = glm::translate(glm::mat4(1.0f), physics.position);
         object.useShader(model * objTranslation);
         object.draw(isCircle);
     }
@@ -860,6 +909,11 @@ class gameObject{
     void setModelMatrix(glm::mat4 matrix)
     {
         model = matrix;
+    }
+
+    void setPosition(glm::vec3 position)
+    {
+        physics.position = position;
     }
 
     float getAverageVertices()
@@ -1014,6 +1068,21 @@ class player : public gameObject {
 
 class obstacle : public gameObject {
     public:
+    obstacle()
+    {
+        object.setColor(glm::vec4(0.8f,0.8f,0.8f, 1.0f));
+        // physics.hasGravity = true;
+        // physics.acceleration = GRAVITY;
+
+        physics.hasCollision = true;
+        physics.isStatic = true;
+    }
+
+    void setShader(shader* modelShader)
+    {
+        object.setShader(modelShader);
+    }
+
     obstacle(shader* modelShader, float length, float breadth, float width = 0)
     {
         object.setShader(modelShader);
