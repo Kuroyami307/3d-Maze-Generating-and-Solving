@@ -2,7 +2,9 @@
 # Makefile for Emscripten
 # =========================
 
-TARGET = index
+# Output folder and target name
+TARGET_DIR = Emiscripten
+TARGET = $(TARGET_DIR)/index
 
 # Source files
 SRC_CPP = main.cpp
@@ -17,17 +19,28 @@ INCLUDE = \
 CC = emcc
 
 # Flags
-CFLAGS_C = $(INCLUDE)             # C compile flags (no C++ standard here)
-CFLAGS_CPP = $(INCLUDE) -std=c++17  # C++ compile flags
+CFLAGS_CPP = $(INCLUDE) -std=c++17
+CFLAGS_C = $(INCLUDE)
 
-LINK_FLAGS = -s USE_WEBGL2=1 -s USE_GLFW=3 --preload-file vShader.txt --preload-file fShader.txt
+LINK_FLAGS = \
+-s USE_WEBGL2=1 \
+-s USE_GLFW=3 \
+--preload-file $(TARGET_DIR)/vShader.txt \
+--preload-file $(TARGET_DIR)/fShader.txt
 
 # Object files
 OBJ_CPP = $(SRC_CPP:.cpp=.o)
 OBJ_C = $(SRC_C:.c=.o)
 
-# Build all
-all: $(TARGET).html
+# ===== Targets =====
+
+# Default build target
+all: prepare $(TARGET).html
+
+# Create output directory and copy shader files
+prepare:
+	mkdir -p $(TARGET_DIR)
+	cp Shaders/vShader.txt Shaders/fShader.txt $(TARGET_DIR)
 
 # Compile C++ source files
 %.o: %.cpp
@@ -37,10 +50,11 @@ all: $(TARGET).html
 %.o: %.c
 	$(CC) $(CFLAGS_C) -c $< -o $@
 
-# Link all objects
+# Link objects into WebAssembly/HTML output
 $(TARGET).html: $(OBJ_CPP) $(OBJ_C)
 	$(CC) $^ -o $@ $(LINK_FLAGS)
 
 # Clean build files
 clean:
-	rm -f $(OBJ_CPP) $(OBJ_C) $(TARGET).html $(TARGET).js $(TARGET).wasm
+	rm -f *.o
+	rm -rf $(TARGET_DIR)

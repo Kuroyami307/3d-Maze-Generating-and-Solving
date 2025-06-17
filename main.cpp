@@ -8,8 +8,8 @@
 #include <glm/gtc/matrix_transform.hpp>  // For transformations like translate, rotate, scale
 #include <glm/gtc/type_ptr.hpp>
 
-#include "game.h"
-#include "shader.h"
+#include "custom/game.h"
+#include "custom/shader.h"
 
 #ifdef __EMSCRIPTEN__
 #include <emscripten/emscripten.h>
@@ -294,9 +294,9 @@ int main()
 
     
     #ifdef __EMSCRIPTEN__
-        mainShader.loadShaders("/vShader.txt", "/fShader.txt");
+        mainShader.loadShaders("Emiscripten/vShader.txt", "Emiscripten/fShader.txt");
     #else
-        mainShader.loadShaders("vs2.txt", "fs2.txt");
+        mainShader.loadShaders("Shaders/vs2.txt", "Shaders/fs2.txt");
     #endif
 
     gPtr = new grid(&mainShader);
