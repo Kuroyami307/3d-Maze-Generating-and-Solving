@@ -12,6 +12,8 @@ app.dSYM/
 *.log
 *.tmp
 
+*.o
+
 # Optional: ignore .txt files (uncomment if needed)
 # *.txt
 
