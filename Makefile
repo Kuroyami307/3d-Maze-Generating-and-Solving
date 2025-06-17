@@ -8,11 +8,11 @@ TARGET = $(TARGET_DIR)/index
 
 # Source files
 SRC_CPP = main.cpp
-SRC_C = glad.c
+SRC_C = ../Files/include/glad/glad.c
 
 # Include paths
 INCLUDE = \
--Ifiles/include \
+-I../Files/include \
 -I/opt/homebrew/include
 
 # Compiler
@@ -30,31 +30,31 @@ LINK_FLAGS = \
 
 # Object files
 OBJ_CPP = $(SRC_CPP:.cpp=.o)
-OBJ_C = $(SRC_C:.c=.o)
+OBJ_C = $(notdir $(SRC_C:.c=.o))
 
 # ===== Targets =====
 
-# Default build target
+# Default target
 all: prepare $(TARGET).html
 
-# Create output directory and copy shader files
+# Prepare output directory and shaders
 prepare:
 	mkdir -p $(TARGET_DIR)
 	cp Shaders/vShader.txt Shaders/fShader.txt $(TARGET_DIR)
 
-# Compile C++ source files
+# Compile C++ sources
 %.o: %.cpp
 	$(CC) $(CFLAGS_CPP) -c $< -o $@
 
-# Compile C source files
-%.o: %.c
+# Compile GLAD
+glad.o: ../Files/include/glad/glad.c
 	$(CC) $(CFLAGS_C) -c $< -o $@
 
-# Link objects into WebAssembly/HTML output
+# Link to output
 $(TARGET).html: $(OBJ_CPP) $(OBJ_C)
 	$(CC) $^ -o $@ $(LINK_FLAGS)
 
-# Clean build files
+# Clean build
 clean:
 	rm -f *.o
 	rm -rf $(TARGET_DIR)
