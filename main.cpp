@@ -372,7 +372,7 @@ int main()
     shader mainShader;
     
     #ifdef __EMSCRIPTEN__
-        mainShader.loadShaders("Emiscripten/vS3dWeb.shader", "Emiscripten/fS3DWeb.shader");
+        mainShader.loadShaders("docs/vS3dWeb.shader", "docs/fS3DWeb.shader");
     #else
         mainShader.loadShaders("Shaders/vS3D.shader", "Shaders/fS3D.shader");
     #endif
