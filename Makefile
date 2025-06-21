@@ -25,8 +25,8 @@ CFLAGS_C = $(INCLUDE)
 LINK_FLAGS = \
 -s USE_WEBGL2=1 \
 -s USE_GLFW=3 \
---preload-file $(TARGET_DIR)/vShader.txt \
---preload-file $(TARGET_DIR)/fShader.txt
+--preload-file $(TARGET_DIR)/vS3dWeb.shader \
+--preload-file $(TARGET_DIR)/fS3DWeb.shader
 
 # Object files
 OBJ_CPP = $(SRC_CPP:.cpp=.o)
@@ -40,7 +40,7 @@ all: prepare $(TARGET).html
 # Prepare output directory and shaders
 prepare:
 	mkdir -p $(TARGET_DIR)
-	cp Shaders/vShader.txt Shaders/fShader.txt $(TARGET_DIR)
+	cp Shaders/vS3dWeb.shader Shaders/fS3DWeb.shader $(TARGET_DIR)
 
 # Compile C++ sources
 %.o: %.cpp

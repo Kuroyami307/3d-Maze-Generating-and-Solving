@@ -27,7 +27,7 @@ var ENVIRONMENT_IS_SHELL = !ENVIRONMENT_IS_WEB && !ENVIRONMENT_IS_NODE && !ENVIR
 
 // --pre-jses are emitted after the Module integration code, so that they can
 // refer to Module (if they choose; they can also define Module)
-// include: /var/folders/80/x292h16x2g11d76t_dw3kx4r0000gn/T/tmp8o3z_821.js
+// include: /var/folders/80/x292h16x2g11d76t_dw3kx4r0000gn/T/tmp3_z0tw_8.js
 
   Module['expectedDataFileDownloads'] ??= 0;
   Module['expectedDataFileDownloads']++;
@@ -204,25 +204,25 @@ Module['FS_createPath']("/", "Emiscripten", true, true);
     }
 
     }
-    loadPackage({"files": [{"filename": "/Emiscripten/fShader.txt", "start": 0, "end": 120}, {"filename": "/Emiscripten/vShader.txt", "start": 120, "end": 399}], "remote_package_size": 399});
+    loadPackage({"files": [{"filename": "/Emiscripten/fS3DWeb.shader", "start": 0, "end": 969}, {"filename": "/Emiscripten/vS3dWeb.shader", "start": 969, "end": 1510}], "remote_package_size": 1510});
 
   })();
 
-// end include: /var/folders/80/x292h16x2g11d76t_dw3kx4r0000gn/T/tmp8o3z_821.js
-// include: /var/folders/80/x292h16x2g11d76t_dw3kx4r0000gn/T/tmprwc7z53t.js
+// end include: /var/folders/80/x292h16x2g11d76t_dw3kx4r0000gn/T/tmp3_z0tw_8.js
+// include: /var/folders/80/x292h16x2g11d76t_dw3kx4r0000gn/T/tmpydcnqd3a.js
 
     // All the pre-js content up to here must remain later on, we need to run
     // it.
     if ((typeof ENVIRONMENT_IS_WASM_WORKER != 'undefined' && ENVIRONMENT_IS_WASM_WORKER) || (typeof ENVIRONMENT_IS_PTHREAD != 'undefined' && ENVIRONMENT_IS_PTHREAD) || (typeof ENVIRONMENT_IS_AUDIO_WORKLET != 'undefined' && ENVIRONMENT_IS_AUDIO_WORKLET)) Module['preRun'] = [];
     var necessaryPreJSTasks = Module['preRun'].slice();
-  // end include: /var/folders/80/x292h16x2g11d76t_dw3kx4r0000gn/T/tmprwc7z53t.js
-// include: /var/folders/80/x292h16x2g11d76t_dw3kx4r0000gn/T/tmpa6l4bcuu.js
+  // end include: /var/folders/80/x292h16x2g11d76t_dw3kx4r0000gn/T/tmpydcnqd3a.js
+// include: /var/folders/80/x292h16x2g11d76t_dw3kx4r0000gn/T/tmpi6g1nije.js
 
     if (!Module['preRun']) throw 'Module.preRun should exist because file support used it; did a pre-js delete it?';
     necessaryPreJSTasks.forEach((task) => {
       if (Module['preRun'].indexOf(task) < 0) throw 'All preRun tasks that exist before user pre-js code should remain after; did you replace Module or modify Module.preRun?';
     });
-  // end include: /var/folders/80/x292h16x2g11d76t_dw3kx4r0000gn/T/tmpa6l4bcuu.js
+  // end include: /var/folders/80/x292h16x2g11d76t_dw3kx4r0000gn/T/tmpi6g1nije.js
 
 
 var arguments_ = [];
@@ -9559,6 +9559,8 @@ async function createWasm() {
 
   var _glfwGetKey = (winid, key) => GLFW.getKey(winid, key);
 
+  var _glfwGetTime = () => GLFW.getTime() - GLFW.initialTime;
+
   var _glfwInit = () => {
       if (GLFW.windows) return 1; // GL_TRUE
   
@@ -10783,6 +10785,8 @@ var wasmImports = {
   glfwCreateWindow: _glfwCreateWindow,
   /** @export */
   glfwGetKey: _glfwGetKey,
+  /** @export */
+  glfwGetTime: _glfwGetTime,
   /** @export */
   glfwInit: _glfwInit,
   /** @export */
