@@ -3,7 +3,7 @@
 # =========================
 
 # Output folder and target name
-TARGET_DIR = Emiscripten
+TARGET_DIR = docs
 TARGET = $(TARGET_DIR)/index
 
 # Source files
