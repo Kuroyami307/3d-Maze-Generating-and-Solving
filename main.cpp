@@ -63,23 +63,23 @@ public:
     void initializeWalls(shader *mainShader)
     {
         base.block3D(40, 40, 4);
-        base.setModelMatrix(glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -2.0f, 0.0f)));
+        base.setModelMatrix(glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -2.0f)));
         base.setShader(mainShader);
         
         for (int i = 0; i < 4; i++) {
             walls[i].setShader(mainShader);
         }
-        walls[0].block3D(45, 5, 50);
-        walls[0].setModelMatrix(glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 20.0f, 0.0f)));
+        walls[0].block3D(45, 5, 30);
+        walls[0].setModelMatrix(glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 20.0f, 15.0f)));
 
-        walls[1].block3D(45, 5, 50);
-        walls[1].setModelMatrix(glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -20.0f, 0.0f)));
+        walls[1].block3D(45, 5, 30);
+        walls[1].setModelMatrix(glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -20.0f, 15.0f)));
 
-        walls[2].block3D(5, 45, 50);
-        walls[2].setModelMatrix(glm::translate(glm::mat4(1.0f), glm::vec3(-20.0f, 0.0f, 0.0f)));
+        walls[2].block3D(5, 45, 30);
+        walls[2].setModelMatrix(glm::translate(glm::mat4(1.0f), glm::vec3(-20.0f, 0.0f, 15.0f)));
 
-        walls[3].block3D(5, 45, 50);
-        walls[3].setModelMatrix(glm::translate(glm::mat4(1.0f), glm::vec3(20.0f, 0.0f, 0.0f)));
+        walls[3].block3D(5, 45, 30);
+        walls[3].setModelMatrix(glm::translate(glm::mat4(1.0f), glm::vec3(20.0f, 0.0f, 15.0f)));
     }
 
     void draw()
@@ -226,66 +226,6 @@ public:
         return false;
     }
 
-    void recursiveBacktrack(int block_num)
-    {
-        int next_block;
-
-        blocks[block_num].visited = true;
-        visitedCells.push(block_num);
-
-        if(hasUnvisitedNeighbours(block_num))
-        {
-            int direction;
-            while(true)
-            {
-                int i = block_num / ROW, j = block_num % ROW;
-                direction = rand() % 4;
-
-                next_block = -1;
-                switch(direction)
-                {
-                    case 0:
-                        if(i > 0) next_block = (i - 1) * ROW + j;
-                        break;
-
-                    case 1:
-                        if(i < ROW - 1) next_block = (i + 1) * ROW + j;
-                        break;
-
-                    case 2:
-                        if(j > 0) next_block = i * ROW + (j - 1);
-                        break;
-
-                    case 3:
-                        if(j < ROW - 1) next_block = i * ROW + (j + 1);
-                        break;
-                }
-                if(next_block == -1) continue;
-
-                if(blocks[next_block].visited == false) break;
-            }
-
-            removeWall(block_num, direction);
-            block_num = next_block;
-            // recursiveBacktrack(next_block);
-        }
-        else
-        {
-            while(!visitedCells.empty())
-            {
-                next_block = visitedCells.top();
-                visitedCells.pop();
-
-                if(hasUnvisitedNeighbours(next_block))
-                {
-                    // recursiveBacktrack(next_block);
-                    block_num = next_block;
-                    break;
-                }
-            }
-        }
-    }
-
     void generateMaze(int block = -1)
     {
         static int block_num = rand() % GRIDSIZE;
@@ -421,16 +361,6 @@ void main_loop()
         return;
 
     processInput(window);
-
-    // static float angle = 0.0f;
-    // angle += glm::radians(0.5f); // smooth constant speed
-
-    // // ❗ Fixed position — this never changes
-    // glm::vec3 baseLight(200.0f, 200.0f, 200.0f);
-
-    // // ✅ Rotate the base vector instead of current light position
-    // glm::mat4 rotMat = glm::rotate(glm::mat4(1.0f), angle, glm::vec3(0.0f, 0.0f, 1.0f));
-    // lightSource.position = glm::vec3(rotMat * glm::vec4(baseLight, 1.0f));
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
