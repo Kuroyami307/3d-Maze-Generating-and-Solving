@@ -27,7 +27,7 @@ var ENVIRONMENT_IS_SHELL = !ENVIRONMENT_IS_WEB && !ENVIRONMENT_IS_NODE && !ENVIR
 
 // --pre-jses are emitted after the Module integration code, so that they can
 // refer to Module (if they choose; they can also define Module)
-// include: /var/folders/80/x292h16x2g11d76t_dw3kx4r0000gn/T/tmp06qdvviu.js
+// include: /var/folders/80/x292h16x2g11d76t_dw3kx4r0000gn/T/tmppmkm84j3.js
 
   Module['expectedDataFileDownloads'] ??= 0;
   Module['expectedDataFileDownloads']++;
@@ -204,25 +204,25 @@ Module['FS_createPath']("/", "docs", true, true);
     }
 
     }
-    loadPackage({"files": [{"filename": "/docs/fS3DWeb.shader", "start": 0, "end": 969}, {"filename": "/docs/vS3dWeb.shader", "start": 969, "end": 1510}], "remote_package_size": 1510});
+    loadPackage({"files": [{"filename": "/docs/fS3DWeb.shader", "start": 0, "end": 1328}, {"filename": "/docs/vS3dWeb.shader", "start": 1328, "end": 1869}], "remote_package_size": 1869});
 
   })();
 
-// end include: /var/folders/80/x292h16x2g11d76t_dw3kx4r0000gn/T/tmp06qdvviu.js
-// include: /var/folders/80/x292h16x2g11d76t_dw3kx4r0000gn/T/tmpa_s9ha3u.js
+// end include: /var/folders/80/x292h16x2g11d76t_dw3kx4r0000gn/T/tmppmkm84j3.js
+// include: /var/folders/80/x292h16x2g11d76t_dw3kx4r0000gn/T/tmpyjs9hhme.js
 
     // All the pre-js content up to here must remain later on, we need to run
     // it.
     if ((typeof ENVIRONMENT_IS_WASM_WORKER != 'undefined' && ENVIRONMENT_IS_WASM_WORKER) || (typeof ENVIRONMENT_IS_PTHREAD != 'undefined' && ENVIRONMENT_IS_PTHREAD) || (typeof ENVIRONMENT_IS_AUDIO_WORKLET != 'undefined' && ENVIRONMENT_IS_AUDIO_WORKLET)) Module['preRun'] = [];
     var necessaryPreJSTasks = Module['preRun'].slice();
-  // end include: /var/folders/80/x292h16x2g11d76t_dw3kx4r0000gn/T/tmpa_s9ha3u.js
-// include: /var/folders/80/x292h16x2g11d76t_dw3kx4r0000gn/T/tmpfu20she2.js
+  // end include: /var/folders/80/x292h16x2g11d76t_dw3kx4r0000gn/T/tmpyjs9hhme.js
+// include: /var/folders/80/x292h16x2g11d76t_dw3kx4r0000gn/T/tmpwpa1yx6d.js
 
     if (!Module['preRun']) throw 'Module.preRun should exist because file support used it; did a pre-js delete it?';
     necessaryPreJSTasks.forEach((task) => {
       if (Module['preRun'].indexOf(task) < 0) throw 'All preRun tasks that exist before user pre-js code should remain after; did you replace Module or modify Module.preRun?';
     });
-  // end include: /var/folders/80/x292h16x2g11d76t_dw3kx4r0000gn/T/tmpfu20she2.js
+  // end include: /var/folders/80/x292h16x2g11d76t_dw3kx4r0000gn/T/tmpwpa1yx6d.js
 
 
 var arguments_ = [];

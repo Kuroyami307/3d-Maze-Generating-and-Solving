@@ -5,7 +5,10 @@ in vec3 Normal;
 
 uniform vec3 lightPosition;
 uniform vec3 cameraPosition;
-uniform vec3 ourColor; // base object color (RGB)
+uniform vec3 highlightColor; // base object color (RGB)
+uniform vec3 baseColor;
+uniform float startTime = -1;
+uniform float time = -1;
 
 out vec4 FragColor;
 
@@ -16,6 +19,16 @@ void main()
     vec3 lightDir = normalize(lightPosition - FragPos);
     vec3 viewDir = normalize(cameraPosition - FragPos);
     vec3 reflectDir = reflect(-lightDir, norm);
+
+    float progress = 0.0;
+    vec3 ourColor = baseColor;
+
+    if(startTime > 0.0 && highlightColor != baseColor)
+    {
+        float localTime = time - startTime;
+        progress = clamp(localTime / 5.0, 0.0, 1.0);
+        ourColor = mix(highlightColor, baseColor, progress);
+    }
 
     // Ambient
     float ambientStrength = 0.2;

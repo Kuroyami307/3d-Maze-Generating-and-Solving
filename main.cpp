@@ -27,7 +27,7 @@ void glfwErrorCallback(int error, const char* description);
 unsigned int SCR_WIDTH = 700;
 unsigned int SCR_HEIGHT = 700;
 
-glm::vec3 cameraPos(0.0f, 0.0f, 500.0f), targetPos(0.0f), cameraUp(0.0f, 1.0f, 0.0f);
+glm::vec3 cameraPos(0.0f, 0.0f, 420.0f), targetPos(0.0f), cameraUp(0.0f, 1.0f, 0.0f);
 light lightSource = {glm::vec3(0.0f, 0.0f, 200.0f), glm::vec4(1.0f), 1.0f};
 glm::mat4 rotMat(1.0f);
 
@@ -37,11 +37,28 @@ class grid;
 
 class cell {
 public:
-    bool hasWall[4] = {1, 1, 1, 1}; // 0-top 1-bottom 2-left 3-right
-    int value = 15; // just for printing purpose before adding graphics stuffs
-    bool visited = false;
+    bool hasWall[4]; // 0-top 1-bottom 2-left 3-right
+    bool visited;
     obstacle walls[4];
     ground base;
+    float startTime;
+
+    cell()
+    {
+        initialize();
+    }
+
+    void initialize()
+    {
+        visited = false;
+        startTime = -1;
+        
+        for(int i = 0; i < 4; i++)
+        {
+            hasWall[i] = true;
+            walls[i].setCollisionStatus(true);
+        }
+    }
 
     void initializeWalls(shader *mainShader)
     {
@@ -67,6 +84,8 @@ public:
 
     void draw()
     {
+        base.setUniform("startTime", startTime);
+
         for (int i = 0; i < 4; i++) {
             if (hasWall[i]) walls[i].draw(lightSource, cameraPos);
         }
@@ -90,12 +109,23 @@ public:
         }
         // pPtr->collision(&base);
     }
+
+    void removeWall(int index)
+    {
+        hasWall[index] = false;
+        walls[index].setCollisionStatus(false);
+    }
 };
 
 class grid {
 private:
     cell blocks[GRIDSIZE];
+    cell endBlock;
+
     std::stack<int> visitedCells;
+    float generationCompleteTime = -1.0;
+    bool isGenerating = true;
+    bool isCompleted = true;
 
 public:
     grid(shader *mainShader)
@@ -108,6 +138,17 @@ public:
             j = k % ROW; // column
 
             blocks[k].setPosition(glm::vec3((float)j * 40 - (ROW/2 * 40 - 20), -(float)i * 40 + (ROW/2 * 40 - 20), 0.0f));
+        }
+        endBlock.initializeWalls(mainShader);
+        endBlock.setPosition(glm::vec3((float)ROW * 40 - (ROW/2 * 40 - 20), -(float)(ROW-1) * 40 + (ROW/2 * 40 - 20), 0.0f));
+        endBlock.removeWall(2);
+        endBlock.base.setColor(glm::vec4(0.1f, 0.8f, 0.5f, 1.0f));
+    }
+
+    void resetGrid(shader *mainShader)
+    {
+        for (int k = 0; k < GRIDSIZE; k++) {
+            blocks[k].initialize();
         }
     }
 
@@ -155,36 +196,14 @@ public:
         }
     }
 
-    void updateValues()
-    {
-        int value;
-        for(int i = 0; i < GRIDSIZE; i++)
-        {
-            value = 0;
-            if(blocks[i].hasWall[0]) value += 1;
-            if(blocks[i].hasWall[1]) value += 2;
-            if(blocks[i].hasWall[2]) value += 4;
-            if(blocks[i].hasWall[3]) value += 8;
-
-            blocks[i].value = value;
-        }
-    }
-
-    void displayGrid()
-    {
-        for(int i = 1; i <= GRIDSIZE; i++)
-        {
-            std::cout << blocks[i-1].value << "  ";
-            if(i % 8 == 0) std::cout << std::endl;
-        }
-    }
-
     void draw()
     {
         for(int i = 0; i < GRIDSIZE; i++)
         {
             blocks[i].draw();
         }
+
+        if(!isGenerating) endBlock.draw();
     }
 
     bool hasUnvisitedNeighbours(int block_num)
@@ -240,7 +259,8 @@ public:
             }
 
             removeWall(block_num, direction);
-            recursiveBacktrack(next_block);
+            block_num = next_block;
+            // recursiveBacktrack(next_block);
         }
         else
         {
@@ -251,8 +271,9 @@ public:
 
                 if(hasUnvisitedNeighbours(next_block))
                 {
-                    recursiveBacktrack(next_block);
-                    return;
+                    // recursiveBacktrack(next_block);
+                    block_num = next_block;
+                    break;
                 }
             }
         }
@@ -260,8 +281,88 @@ public:
 
     void generateMaze()
     {
-        int start_block = 37;
-        recursiveBacktrack(start_block);
+        static int block_num = 37;
+        int next_block = -1;
+
+            // draw();
+        blocks[block_num].visited = true;
+        blocks[block_num].startTime = glfwGetTime();
+
+        visitedCells.push(block_num);
+
+        if(hasUnvisitedNeighbours(block_num))
+        {
+            int direction;
+            while(true)
+            {
+                int i = block_num / ROW, j = block_num % ROW;
+                direction = rand() % 4;
+
+                next_block = -1;
+                switch(direction)
+                {
+                    case 0:
+                        if(i > 0) next_block = (i - 1) * ROW + j;
+                        break;
+
+                    case 1:
+                        if(i < ROW - 1) next_block = (i + 1) * ROW + j;
+                        break;
+
+                    case 2:
+                        if(j > 0) next_block = i * ROW + (j - 1);
+                        break;
+
+                    case 3:
+                        if(j < ROW - 1) next_block = i * ROW + (j + 1);
+                        break;
+                }
+                if(next_block == -1) continue;
+
+                if(blocks[next_block].visited == false) break;
+            }
+
+            removeWall(block_num, direction);
+            block_num = next_block;
+            // recursiveBacktrack(next_block);
+        }
+        else
+        {
+            while(!visitedCells.empty())
+            {
+                next_block = visitedCells.top();
+                visitedCells.pop();
+
+                if(hasUnvisitedNeighbours(next_block))
+                {
+                    // recursiveBacktrack(next_block);
+                    block_num = next_block;
+                    break;
+                }
+            }
+        }
+        
+        if(!hasUnvisitedNeighbours(block_num) && visitedCells.empty())
+        {
+            isGenerating = false;
+            generationCompleteTime = glfwGetTime();
+            blocks[GRIDSIZE - 1].removeWall(3);
+        }
+    }
+
+    void setGenerationStatus(bool status)
+    {
+        isGenerating = status;
+    }
+
+    bool getGenerationStatus()
+    {
+        return isGenerating;
+    }
+
+    float getGenerationCompleteTime()
+    {
+        return generationCompleteTime;
     }
 
     void checkCollision(player* pPtr)
@@ -270,6 +371,23 @@ public:
         {
             blocks[i].checkCollision(pPtr);
         }
+        endBlock.checkCollision(pPtr);
+    }
+
+    bool isMazeComplete(player* pPtr)
+    {
+        float x = pPtr->getPosition().x - endBlock.base.getPosition().x;
+        float y = pPtr->getPosition().y - endBlock.base.getPosition().y;
+
+        if(abs(x) <= 10.0f && abs(y) <= 10.0f) isCompleted = true;
+        else isCompleted = false;
+        
+        return isCompleted;
+    }
+
+    void setCompleteStatus(bool status)
+    {
+        isCompleted = status;
     }
 };
 
@@ -277,17 +395,21 @@ public:
 GLFWwindow* window = nullptr;
 grid* gPtr = nullptr;
 player* pPtr = nullptr;
+shader *shaderPtr = nullptr;
 
 
 void main_loop()
 {
     static float lastFrame = 0.0f;
     static float deltaTime = 0.0f; 
+    static int i = 0;
 
     float currentFrame = glfwGetTime();
     deltaTime = currentFrame - lastFrame;
     lastFrame = currentFrame;
     
+    shaderPtr->setFloat("time", currentFrame);
+
     if (!window)
         return;
 
@@ -305,17 +427,37 @@ void main_loop()
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    if(pPtr)
-    {
-        pPtr->movements(window);
-        // pPtr->updatePhysics(deltaTime);
-        pPtr->draw(lightSource, cameraPos);
-    }
-
-    if (gPtr)
+    if(gPtr)
     {
         gPtr->draw();
-        gPtr->checkCollision(pPtr);
+        if(pPtr && !gPtr->getGenerationStatus())
+        {
+            if(currentFrame - gPtr->getGenerationCompleteTime() >= 2.0)
+            {
+                pPtr->movements(window);
+                // pPtr->updatePhysics(deltaTime);
+                pPtr->draw(lightSource, cameraPos);
+                gPtr->checkCollision(pPtr);
+            }
+        }
+    }
+
+    if(gPtr->getGenerationStatus())
+    {
+        if(i == 3)
+        {
+            gPtr -> generateMaze();
+            i = 0;
+        }
+        i++;
+    }
+
+    if(gPtr->isMazeComplete(pPtr))
+    {
+        gPtr->resetGrid(shaderPtr);
+        gPtr->setCompleteStatus(false);
+        gPtr->setGenerationStatus(true);
+        pPtr->setPosition(glm::vec3(-300.0f, 300.0f, 10.0f));
     }
 
     glfwSwapBuffers(window);
@@ -370,7 +512,8 @@ int main()
     glEnable(GL_DEPTH_TEST);
 
     shader mainShader;
-    
+    shaderPtr = &mainShader;
+
     #ifdef __EMSCRIPTEN__
         mainShader.loadShaders("docs/vS3dWeb.shader", "docs/fS3DWeb.shader");
     #else
@@ -378,16 +521,17 @@ int main()
     #endif
 
     gPtr = new grid(&mainShader);
-    gPtr->generateMaze();
+    // gPtr->generateMaze();
 
     pPtr = new player(&mainShader);
     pPtr->block3D(25, 25, 25);
-    pPtr->setPosition(glm::vec3(-300.0f, 290.0f, 10.0f));
+    pPtr->setPosition(glm::vec3(-300.0f, 300.0f, 10.0f));
 
     view  = glm::lookAt(cameraPos, targetPos, cameraUp);
     float aspectRatio = (float)SCR_WIDTH / SCR_HEIGHT;
     // projection = glm::ortho(-400.0f, 400.0f, -400.0f, 400.0f, -100.0f, 100.0f);
-    projection = glm::perspective(glm::radians(75.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 1200.0f);
+    projection = glm::perspective(glm::radians(85.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 1200.0f);
+    float time;
 
 #ifdef __EMSCRIPTEN__
     emscripten_set_main_loop(main_loop, 0, 1);
