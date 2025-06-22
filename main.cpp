@@ -17,8 +17,8 @@
 #include <emscripten/html5.h> 
 #endif
 
-#define GRIDSIZE 256
-#define ROW 16
+const int ROW = 16;
+const int GRIDSIZE = ROW * ROW;
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow *window);
@@ -127,9 +127,13 @@ private:
     bool isGenerating = true;
     bool isCompleted = true;
 
+    int startBlockNum;
+
 public:
     grid(shader *mainShader)
-    {
+    {   
+        srand((unsigned int)glfwGetTime());
+        // startBlockNum = rand() % GRIDSIZE;
         int i, j;
         for (int k = 0; k < GRIDSIZE; k++) {
             blocks[k].initializeWalls(mainShader);
@@ -147,6 +151,9 @@ public:
 
     void resetGrid(shader *mainShader)
     {
+        srand((unsigned int)glfwGetTime());
+        // startBlockNum = rand() % GRIDSIZE;
+
         for (int k = 0; k < GRIDSIZE; k++) {
             blocks[k].initialize();
         }
@@ -279,9 +286,9 @@ public:
         }
     }
 
-    void generateMaze()
+    void generateMaze(int block = -1)
     {
-        static int block_num = 37;
+        static int block_num = rand() % GRIDSIZE;
         int next_block = -1;
 
             // draw();
